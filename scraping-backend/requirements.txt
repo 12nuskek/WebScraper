@@ -1,0 +1,20 @@
+Django>=4.2,<5.0
+python-decouple>=3.8
+psycopg2-binary>=2.9.5  # For PostgreSQL in production
+gunicorn>=20.1.0  # For production deployment
+
+# Django REST Framework
+djangorestframework>=3.14.0
+djangorestframework-simplejwt>=5.2.2
+
+# API Documentation
+drf-spectacular>=0.26.0
+
+# Image handling
+Pillow>=10.0.0
+
+# CORS handling (if needed for frontend)
+django-cors-headers>=4.2.0
+
+# Testing
+requests>=2.31.0  # For API testing script
