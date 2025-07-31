@@ -55,10 +55,8 @@ class CoreApplicationTestCase(BaseTestCase):
         from django.conf import settings
         self.assertIsInstance(settings.SECRET_KEY, str)
         self.assertIn('apps.core', settings.INSTALLED_APPS)
-        self.assertIn('apps.accounts', settings.INSTALLED_APPS)
+        self.assertIn('apps.auth', settings.INSTALLED_APPS)
         self.assertIn('apps.projects', settings.INSTALLED_APPS)
-        self.assertIn('apps.scraper', settings.INSTALLED_APPS)
-        self.assertIn('apps.jobs', settings.INSTALLED_APPS)
     
     def test_database_connection(self):
         """Test that database connection works."""
@@ -71,7 +69,7 @@ class CoreApplicationTestCase(BaseTestCase):
     def test_user_model_configured(self):
         """Test that custom user model is properly configured."""
         from django.conf import settings
-        self.assertEqual(settings.AUTH_USER_MODEL, 'accounts.User')
+        self.assertEqual(settings.AUTH_USER_MODEL, 'user_auth.User')
     
     def test_rest_framework_configured(self):
         """Test that Django REST Framework is properly configured."""

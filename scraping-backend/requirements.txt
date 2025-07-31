@@ -16,5 +16,11 @@ Pillow>=10.0.0
 # CORS handling (if needed for frontend)
 django-cors-headers>=4.2.0
 
+# Filtering
+django-filter>=25.1
+
+# Web scraping
+playwright>=1.40.0
+
 # Testing
 requests>=2.31.0  # For API testing script

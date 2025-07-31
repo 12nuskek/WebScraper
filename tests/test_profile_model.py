@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
-from apps.accounts.models import Profile
+from apps.auth.models import Profile
 from .test_core import BaseTestCase
 
 User = get_user_model()

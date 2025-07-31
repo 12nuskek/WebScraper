@@ -44,10 +44,17 @@ DJANGO_APPS = [
 
 LOCAL_APPS = [
     'apps.core',
-    'apps.accounts',
+    'apps.auth',
+    'apps.profiles',
     'apps.projects',
-    'apps.scraper',
-    'apps.jobs',
+    'apps.spider',
+    'apps.job',
+    'apps.request',
+    'apps.response',
+    'apps.schedule',
+    'apps.session',
+    'apps.proxy',
+    'apps.worker',
 ]
 
 THIRD_PARTY_APPS = [
@@ -56,6 +63,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
+    'django_filters',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
@@ -154,14 +162,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'user_auth.User'
 
 # Migration modules - consolidated in database directory
 MIGRATION_MODULES = {
-    'accounts': 'database.migrations.accounts',
+    'user_auth': 'database.migrations.auth',
     'projects': 'database.migrations.projects',
-    'scraper': 'database.migrations.scraper',
-    'jobs': 'database.migrations.jobs',
+    'spider': 'database.migrations.spider',
+    'job': 'database.migrations.job',
+    'request': 'database.migrations.request',
+    'response': 'database.migrations.response',
+    'schedule': 'database.migrations.schedule',
 }
 
 # Django REST Framework
@@ -232,6 +243,9 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Projects', 'description': 'Project management'},
         {'name': 'Spiders', 'description': 'Web spider/crawler management'},
         {'name': 'Jobs', 'description': 'Spider job execution and monitoring'},
+        {'name': 'Requests', 'description': 'HTTP request queue management'},
+        {'name': 'Responses', 'description': 'HTTP response storage and analysis'},
+        {'name': 'Schedules', 'description': 'Automated spider scheduling with cron'},
     ]
 }
 

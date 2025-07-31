@@ -24,10 +24,15 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # API endpoints
-    path('', include('apps.accounts.urls')),
+    path('', include('apps.auth.urls')),
     path('', include('apps.projects.urls')),
-    path('', include('apps.scraper.urls')),
-    path('', include('apps.jobs.urls')),
+    path('', include('apps.spider.urls')),
+    path('', include('apps.job.urls')),
+    path('', include('apps.request.urls')),
+    path('', include('apps.response.urls')),
+    path('', include('apps.schedule.urls')),
+    path('', include('apps.session.urls')),
+    path('', include('apps.proxy.urls')),
     
     # API documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
