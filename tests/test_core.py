@@ -57,6 +57,8 @@ class CoreApplicationTestCase(BaseTestCase):
         self.assertIn('apps.core', settings.INSTALLED_APPS)
         self.assertIn('apps.accounts', settings.INSTALLED_APPS)
         self.assertIn('apps.projects', settings.INSTALLED_APPS)
+        self.assertIn('apps.scraper', settings.INSTALLED_APPS)
+        self.assertIn('apps.jobs', settings.INSTALLED_APPS)
     
     def test_database_connection(self):
         """Test that database connection works."""

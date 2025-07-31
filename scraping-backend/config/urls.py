@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('apps.accounts.urls')),
     path('', include('apps.projects.urls')),
     path('', include('apps.scraper.urls')),
+    path('', include('apps.jobs.urls')),
     
     # API documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

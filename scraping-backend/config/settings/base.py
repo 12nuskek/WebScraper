@@ -47,6 +47,7 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.projects',
     'apps.scraper',
+    'apps.jobs',
 ]
 
 THIRD_PARTY_APPS = [
@@ -160,6 +161,7 @@ MIGRATION_MODULES = {
     'accounts': 'database.migrations.accounts',
     'projects': 'database.migrations.projects',
     'scraper': 'database.migrations.scraper',
+    'jobs': 'database.migrations.jobs',
 }
 
 # Django REST Framework
@@ -228,7 +230,8 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Auth', 'description': 'Authentication endpoints'},
         {'name': 'Profiles', 'description': 'User profile management'},
         {'name': 'Projects', 'description': 'Project management'},
-        {'name': 'Spider', 'description': 'Web spider/crawler management'},
+        {'name': 'Spiders', 'description': 'Web spider/crawler management'},
+        {'name': 'Jobs', 'description': 'Spider job execution and monitoring'},
     ]
 }
 
