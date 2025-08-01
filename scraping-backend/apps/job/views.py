@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
 
 from apps.spider.models import Spider
 from .models import Job
@@ -21,22 +21,34 @@ from .serializers import JobSerializer
     retrieve=extend_schema(
         tags=['Jobs'],
         summary='Get job',
-        description='Retrieve a specific job by ID'
+        description='Retrieve a specific job by ID',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Job ID')
+        ]
     ),
     update=extend_schema(
         tags=['Jobs'],
         summary='Update job',
-        description='Update a job (full update)'
+        description='Update a job (full update)',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Job ID')
+        ]
     ),
     partial_update=extend_schema(
         tags=['Jobs'],
         summary='Partial update job',
-        description='Partially update a job (e.g., update status, stats)'
+        description='Partially update a job (e.g., update status, stats)',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Job ID')
+        ]
     ),
     destroy=extend_schema(
         tags=['Jobs'],
         summary='Delete job',
-        description='Delete a job record'
+        description='Delete a job record',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Job ID')
+        ]
     ),
 )
 class JobViewSet(viewsets.ModelViewSet):

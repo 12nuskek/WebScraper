@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 import zoneinfo
 
 from apps.spider.models import Spider
@@ -11,8 +12,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
     spider = serializers.PrimaryKeyRelatedField(
         queryset=Spider.objects.all()
     )
-    time_until_next_run = serializers.ReadOnlyField()
-    is_overdue = serializers.ReadOnlyField()
+    time_until_next_run = serializers.SerializerMethodField()
+    is_overdue = serializers.SerializerMethodField()
     is_due = serializers.SerializerMethodField()
     
     class Meta:
@@ -40,6 +41,18 @@ class ScheduleSerializer(serializers.ModelSerializer):
             "is_due",
         )
         
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_time_until_next_run(self, obj):
+        """Get seconds until next run."""
+        td = obj.time_until_next_run
+        return td.total_seconds() if td is not None else None
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_overdue(self, obj):
+        """Check if schedule is overdue."""
+        return obj.is_overdue
+        
+    @extend_schema_field(serializers.BooleanField())
     def get_is_due(self, obj):
         """Check if schedule is currently due."""
         return obj.is_due()

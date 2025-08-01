@@ -1,6 +1,7 @@
 import base64
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema_field
 
 from apps.job.models import Job
 from .models import RequestQueue
@@ -10,7 +11,7 @@ class RequestQueueSerializer(serializers.ModelSerializer):
     job = serializers.PrimaryKeyRelatedField(
         queryset=Job.objects.all()
     )
-    can_retry = serializers.ReadOnlyField()
+    can_retry = serializers.SerializerMethodField()
     # Custom field for handling base64 encoded binary data
     body_blob = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     
@@ -42,6 +43,11 @@ class RequestQueueSerializer(serializers.ModelSerializer):
             "updated_at", 
             "can_retry"
         )
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_can_retry(self, obj):
+        """Check if request can be retried."""
+        return obj.can_retry
         
     def to_representation(self, instance):
         """Custom serialization to handle binary data."""

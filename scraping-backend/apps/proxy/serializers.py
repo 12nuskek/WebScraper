@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from .models import Proxy
 
 
@@ -34,10 +35,12 @@ class ProxySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_healthy(self, obj):
         """Get whether proxy is healthy."""
         return obj.is_healthy
         
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_success_rate(self, obj):
         """Get proxy success rate."""
         return obj.success_rate
@@ -100,10 +103,12 @@ class ProxyListSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_healthy(self, obj):
         """Get whether proxy is healthy."""
         return obj.is_healthy
         
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_success_rate(self, obj):
         """Get proxy success rate."""
         return obj.success_rate
@@ -138,30 +143,37 @@ class ProxyStatsSerializer(serializers.ModelSerializer):
             'last_error',
         ]
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_healthy(self, obj):
         """Get whether proxy is healthy."""
         return obj.is_healthy
         
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_success_rate(self, obj):
         """Get proxy success rate."""
         return obj.success_rate
         
+    @extend_schema_field(serializers.IntegerField())
     def get_total_attempts(self, obj):
         """Get total attempts from metadata."""
         return obj.meta_json.get('total_attempts', 0) if obj.meta_json else 0
         
+    @extend_schema_field(serializers.IntegerField())
     def get_successful_attempts(self, obj):
         """Get successful attempts from metadata."""
         return obj.meta_json.get('successful_attempts', 0) if obj.meta_json else 0
         
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_last_success_at(self, obj):
         """Get last success time from metadata."""
         return obj.meta_json.get('last_success_at') if obj.meta_json else None
         
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_last_failure_at(self, obj):
         """Get last failure time from metadata."""
         return obj.meta_json.get('last_failure_at') if obj.meta_json else None
         
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_last_error(self, obj):
         """Get last error from metadata."""
         return obj.meta_json.get('last_error') if obj.meta_json else None

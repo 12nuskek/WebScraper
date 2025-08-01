@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema_field
 
 from apps.request.models import RequestQueue
 from .models import Response
@@ -9,11 +10,11 @@ class ResponseSerializer(serializers.ModelSerializer):
     request = serializers.PrimaryKeyRelatedField(
         queryset=RequestQueue.objects.all()
     )
-    is_success = serializers.ReadOnlyField()
-    is_redirect = serializers.ReadOnlyField()
-    is_client_error = serializers.ReadOnlyField()
-    is_server_error = serializers.ReadOnlyField()
-    body_size = serializers.ReadOnlyField()
+    is_success = serializers.SerializerMethodField()
+    is_redirect = serializers.SerializerMethodField()
+    is_client_error = serializers.SerializerMethodField()
+    is_server_error = serializers.SerializerMethodField()
+    body_size = serializers.SerializerMethodField()
     
     class Meta:
         model = Response
@@ -46,6 +47,31 @@ class ResponseSerializer(serializers.ModelSerializer):
             "is_server_error",
             "body_size",
         )
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_success(self, obj):
+        """Check if response indicates success."""
+        return obj.is_success
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_redirect(self, obj):
+        """Check if response is a redirect."""
+        return obj.is_redirect
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_client_error(self, obj):
+        """Check if response is a client error."""
+        return obj.is_client_error
+        
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_server_error(self, obj):
+        """Check if response is a server error."""
+        return obj.is_server_error
+        
+    @extend_schema_field(serializers.IntegerField())
+    def get_body_size(self, obj):
+        """Get response body size in bytes."""
+        return obj.body_size
         
     def validate_request(self, value):
         """Ensure the user can only create responses for their own requests."""

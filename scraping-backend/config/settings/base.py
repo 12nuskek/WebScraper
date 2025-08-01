@@ -246,6 +246,8 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Requests', 'description': 'HTTP request queue management'},
         {'name': 'Responses', 'description': 'HTTP response storage and analysis'},
         {'name': 'Schedules', 'description': 'Automated spider scheduling with cron'},
+        {'name': 'Proxies', 'description': 'Proxy server management and rotation'},
+        {'name': 'Sessions', 'description': 'Spider session management with cookies and headers'},
     ]
 }
 

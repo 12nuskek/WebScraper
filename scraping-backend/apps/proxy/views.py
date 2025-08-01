@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
 
 from .models import Proxy
 from .serializers import (
@@ -15,6 +16,43 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Proxies'],
+        summary='List proxies',
+        description='Get a list of all proxy servers with filtering options',
+        parameters=[
+            OpenApiParameter('is_active', description='Filter by active status', required=False, type=bool),
+            OpenApiParameter('health', description='Filter by health status (healthy/unhealthy)', required=False, type=str),
+            OpenApiParameter('max_failures', description='Maximum failure count filter', required=False, type=int),
+        ]
+    ),
+    create=extend_schema(
+        tags=['Proxies'],
+        summary='Create proxy',
+        description='Add a new proxy server to the pool'
+    ),
+    retrieve=extend_schema(
+        tags=['Proxies'],
+        summary='Get proxy',
+        description='Retrieve a specific proxy server by ID'
+    ),
+    update=extend_schema(
+        tags=['Proxies'],
+        summary='Update proxy',
+        description='Update a proxy server (full update)'
+    ),
+    partial_update=extend_schema(
+        tags=['Proxies'],
+        summary='Partial update proxy',
+        description='Partially update a proxy server (e.g., activate/deactivate)'
+    ),
+    destroy=extend_schema(
+        tags=['Proxies'],
+        summary='Delete proxy',
+        description='Remove a proxy server from the pool'
+    ),
+)
 class ProxyViewSet(viewsets.ModelViewSet):
     """ViewSet for managing proxy servers."""
     
@@ -59,6 +97,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
                 
         return queryset
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Mark proxy success',
+        description='Mark a proxy as successfully used and reset its failure count'
+    )
     @action(detail=True, methods=['post'])
     def mark_success(self, request, pk=None):
         """Mark proxy as successfully used."""
@@ -72,6 +115,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'last_ok_at': proxy.last_ok_at
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Mark proxy failure',
+        description='Mark a proxy as failed and increment its failure count'
+    )
     @action(detail=True, methods=['post'])
     def mark_failure(self, request, pk=None):
         """Mark proxy as failed."""
@@ -90,6 +138,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Reset proxy statistics',
+        description='Reset failure count and statistics for a proxy'
+    )
     @action(detail=True, methods=['post'])
     def reset_stats(self, request, pk=None):
         """Reset proxy statistics."""
@@ -103,6 +156,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'meta_json': proxy.meta_json
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Get active proxies',
+        description='Get all currently active proxy servers'
+    )
     @action(detail=False, methods=['get'])
     def active_proxies(self, request):
         """Get all active proxies."""
@@ -114,6 +172,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'results': serializer.data
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Get healthy proxies',
+        description='Get all healthy proxy servers (low failure count)'
+    )
     @action(detail=False, methods=['get'])
     def healthy_proxies(self, request):
         """Get all healthy proxies."""
@@ -125,6 +188,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'results': serializer.data
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Get next proxy for rotation',
+        description='Get the next available proxy for use in rotation'
+    )
     @action(detail=False, methods=['get'])
     def next_proxy(self, request):
         """Get the next proxy for rotation."""
@@ -138,6 +206,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
                 'message': 'No healthy proxies available'
             }, status=status.HTTP_404_NOT_FOUND)
             
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Clean up failed proxies',
+        description='Delete proxies that have exceeded the maximum failure threshold'
+    )
     @action(detail=False, methods=['post'])
     def cleanup_failed(self, request):
         """Clean up proxies with too many failures."""
@@ -154,6 +227,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'deleted_count': deleted_count
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Get proxy statistics',
+        description='Get comprehensive statistics about all proxy servers'
+    )
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Get proxy statistics overview."""
@@ -170,6 +248,11 @@ class ProxyViewSet(viewsets.ModelViewSet):
             'health_percentage': (healthy_proxies / total_proxies * 100) if total_proxies > 0 else 0
         })
         
+    @extend_schema(
+        tags=['Proxies'],
+        summary='Get proxy health status',
+        description='Get detailed health information for a specific proxy'
+    )
     @action(detail=True, methods=['get'])
     def health_check(self, request, pk=None):
         """Get detailed health information for a proxy."""

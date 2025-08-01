@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
 
 from apps.projects.models import Project
 from .models import Spider
@@ -21,22 +21,34 @@ from .serializers import SpiderSerializer
     retrieve=extend_schema(
         tags=['Spiders'],
         summary='Get spider',
-        description='Retrieve a specific spider configuration by ID'
+        description='Retrieve a specific spider configuration by ID',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Spider ID')
+        ]
     ),
     update=extend_schema(
         tags=['Spiders'],
         summary='Update spider',
-        description='Update a spider configuration (full update)'
+        description='Update a spider configuration (full update)',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Spider ID')
+        ]
     ),
     partial_update=extend_schema(
         tags=['Spiders'],
         summary='Partial update spider',
-        description='Partially update a spider configuration'
+        description='Partially update a spider configuration',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Spider ID')
+        ]
     ),
     destroy=extend_schema(
         tags=['Spiders'],
         summary='Delete spider',
-        description='Delete a spider configuration'
+        description='Delete a spider configuration',
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Spider ID')
+        ]
     ),
 )
 class SpiderViewSet(viewsets.ModelViewSet):

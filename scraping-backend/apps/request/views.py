@@ -50,6 +50,8 @@ from .serializers import RequestQueueSerializer
 class RequestQueueViewSet(viewsets.ModelViewSet):
     serializer_class = RequestQueueSerializer
     permission_classes = (permissions.IsAuthenticated,)
+    lookup_field = 'pk'
+    lookup_url_kwarg = 'pk'
 
     def get_queryset(self):
         queryset = RequestQueue.objects.filter(job__spider__project__owner=self.request.user)
@@ -80,6 +82,42 @@ class RequestQueueViewSet(viewsets.ModelViewSet):
             Job, pk=job_id, spider__project__owner=self.request.user
         )
         serializer.save(job=job)
+        
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Request ID')
+        ]
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a specific request by ID."""
+        return super().retrieve(request, *args, **kwargs)
+        
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Request ID')
+        ]
+    )
+    def update(self, request, *args, **kwargs):
+        """Update a request."""
+        return super().update(request, *args, **kwargs)
+        
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Request ID')
+        ]
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Partially update a request."""
+        return super().partial_update(request, *args, **kwargs)
+        
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='id', type=int, location=OpenApiParameter.PATH, description='Request ID')
+        ]
+    )
+    def destroy(self, request, *args, **kwargs):
+        """Delete a request."""
+        return super().destroy(request, *args, **kwargs)
         
     @extend_schema(
         tags=['Requests'],

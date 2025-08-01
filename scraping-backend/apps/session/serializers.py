@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from .models import Session
 
 
@@ -28,10 +29,12 @@ class SessionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_expired(self, obj):
         """Get whether session is expired."""
         return obj.is_expired
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_valid(self, obj):
         """Get whether session is valid."""
         return obj.is_valid
@@ -99,6 +102,7 @@ class SessionListSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         
+    @extend_schema_field(serializers.BooleanField())
     def get_is_expired(self, obj):
         """Get whether session is expired."""
         return obj.is_expired
