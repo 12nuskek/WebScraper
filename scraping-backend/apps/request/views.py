@@ -29,31 +29,45 @@ from .serializers import RequestQueueSerializer
     retrieve=extend_schema(
         tags=['Requests'],
         summary='Get request',
-        description='Retrieve a specific queued request by ID'
+        description='Retrieve a specific queued request by ID',
+        parameters=[
+            OpenApiParameter('id', description='Request ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     update=extend_schema(
         tags=['Requests'],
         summary='Update request',
-        description='Update a queued request (full update)'
+        description='Update a queued request (full update)',
+        parameters=[
+            OpenApiParameter('id', description='Request ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     partial_update=extend_schema(
         tags=['Requests'],
         summary='Partial update request',
-        description='Partially update a queued request (e.g., update status, priority)'
+        description='Partially update a queued request (e.g., update status, priority)',
+        parameters=[
+            OpenApiParameter('id', description='Request ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     destroy=extend_schema(
         tags=['Requests'],
         summary='Delete request',
-        description='Remove a request from the queue'
+        description='Remove a request from the queue',
+        parameters=[
+            OpenApiParameter('id', description='Request ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
 )
 class RequestQueueViewSet(viewsets.ModelViewSet):
     serializer_class = RequestQueueSerializer
     permission_classes = (permissions.IsAuthenticated,)
-    lookup_field = 'pk'
-    lookup_url_kwarg = 'pk'
 
     def get_queryset(self):
+        # For schema generation, return all objects to allow type inference
+        if getattr(self, 'swagger_fake_view', False):
+            return RequestQueue.objects.all()
+        
         queryset = RequestQueue.objects.filter(job__spider__project__owner=self.request.user)
         
         # Filter by job if specified

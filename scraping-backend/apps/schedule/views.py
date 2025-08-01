@@ -31,22 +31,34 @@ from .serializers import ScheduleSerializer, ScheduleStatsSerializer, CronExpres
     retrieve=extend_schema(
         tags=['Schedules'],
         summary='Get schedule',
-        description='Retrieve a specific schedule by ID'
+        description='Retrieve a specific schedule by ID',
+        parameters=[
+            OpenApiParameter('id', description='Schedule ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     update=extend_schema(
         tags=['Schedules'],
         summary='Update schedule',
-        description='Update a schedule (full update)'
+        description='Update a schedule (full update)',
+        parameters=[
+            OpenApiParameter('id', description='Schedule ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     partial_update=extend_schema(
         tags=['Schedules'],
         summary='Partial update schedule',
-        description='Partially update a schedule (e.g., enable/disable, change cron)'
+        description='Partially update a schedule (e.g., enable/disable, change cron)',
+        parameters=[
+            OpenApiParameter('id', description='Schedule ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     destroy=extend_schema(
         tags=['Schedules'],
         summary='Delete schedule',
-        description='Delete a schedule permanently'
+        description='Delete a schedule permanently',
+        parameters=[
+            OpenApiParameter('id', description='Schedule ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
 )
 class ScheduleViewSet(viewsets.ModelViewSet):
@@ -54,6 +66,10 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
+        # For schema generation, return all objects to allow type inference
+        if getattr(self, 'swagger_fake_view', False):
+            return Schedule.objects.all()
+        
         queryset = Schedule.objects.filter(spider__project__owner=self.request.user)
         
         # Filter by spider if specified

@@ -32,22 +32,34 @@ from .serializers import ResponseSerializer, ResponseBodySerializer, ResponseSta
     retrieve=extend_schema(
         tags=['Responses'],
         summary='Get response',
-        description='Retrieve a specific HTTP response by ID'
+        description='Retrieve a specific HTTP response by ID',
+        parameters=[
+            OpenApiParameter('id', description='Response ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     update=extend_schema(
         tags=['Responses'],
         summary='Update response',
-        description='Update an HTTP response record (full update)'
+        description='Update an HTTP response record (full update)',
+        parameters=[
+            OpenApiParameter('id', description='Response ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     partial_update=extend_schema(
         tags=['Responses'],
         summary='Partial update response',
-        description='Partially update an HTTP response record'
+        description='Partially update an HTTP response record',
+        parameters=[
+            OpenApiParameter('id', description='Response ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
     destroy=extend_schema(
         tags=['Responses'],
         summary='Delete response',
-        description='Delete an HTTP response record and its body file'
+        description='Delete an HTTP response record and its body file',
+        parameters=[
+            OpenApiParameter('id', description='Response ID', required=True, type=int, location=OpenApiParameter.PATH),
+        ]
     ),
 )
 class ResponseViewSet(viewsets.ModelViewSet):
@@ -55,6 +67,10 @@ class ResponseViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
+        # For schema generation, return all objects to allow type inference
+        if getattr(self, 'swagger_fake_view', False):
+            return Response.objects.all()
+        
         queryset = Response.objects.filter(request__job__spider__project__owner=self.request.user)
         
         # Filter by request if specified

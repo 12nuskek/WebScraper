@@ -54,7 +54,6 @@ LOCAL_APPS = [
     'apps.schedule',
     'apps.session',
     'apps.proxy',
-    'apps.worker',
 ]
 
 THIRD_PARTY_APPS = [
@@ -287,18 +286,10 @@ CELERY_ACCEPT_CONTENT = ['json']
 
 # Task routing
 CELERY_TASK_ROUTES = {
-    'apps.worker.tasks.process_job': {'queue': 'job_processing'},
-    'apps.worker.tasks.check_queued_jobs': {'queue': 'job_monitoring'},
+    # Worker tasks will be added when worker app is implemented
 }
 
 # Beat schedule for periodic tasks
 CELERY_BEAT_SCHEDULE = {
-    'check-queued-jobs': {
-        'task': 'apps.worker.tasks.check_queued_jobs',
-        'schedule': 30.0,  # Check every 30 seconds
-    },
-    'process-scheduled-jobs': {
-        'task': 'apps.worker.tasks.process_scheduled_jobs', 
-        'schedule': 60.0,  # Check schedules every minute
-    },
+    # Periodic tasks will be added when worker app is implemented
 }
