@@ -1,165 +1,267 @@
-# Web Scraping Worker
+# Worker App - Celery + Redis Implementation
 
-The worker app is a separate process that processes queued scraping jobs using Playwright. It automatically processes the oldest jobs in the queue and handles all aspects of web scraping including request logging and response storage.
+This app provides asynchronous job processing using Celery and Redis for the web scraping platform.
 
-## Features
+## 🏗️ Architecture
 
-- **Automatic Job Processing**: Processes jobs with 'queued' status in chronological order
-- **Playwright Integration**: Uses Playwright for robust web scraping with browser automation
-- **Request/Response Logging**: Automatically logs requests and stores responses
-- **Error Handling**: Comprehensive error handling with retry mechanisms
-- **Configurable**: Support for different browsers, headless/headed mode, timeouts, etc.
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Django API    │───▶│   Redis Broker  │───▶│  Celery Worker  │
+│   (Job Queue)   │    │   (Message Q)   │    │ (Job Processor) │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Database      │    │  Celery Beat    │    │   Task Logs     │
+│ (Job Storage)   │    │  (Scheduler)    │    │  (Monitoring)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-## How It Works
+## 🚀 Getting Started
 
-1. **Job Selection**: The worker continuously monitors the job queue and picks up the oldest job with status 'queued'
-2. **Job Processing**: For each job, it:
-   - Updates job status to 'running'
-   - Processes all start URLs from the spider configuration
-   - Creates request records for each URL
-   - Uses Playwright to navigate to URLs
-   - Captures responses and stores them
-   - Handles any additional requests in the queue
-3. **Completion**: Marks the job as 'done' or 'failed' based on the outcome
-
-## Usage
-
-### Install Dependencies
-
-First, install Playwright and its browser dependencies:
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
-playwright install
 ```
 
-### Run the Worker
+### 2. Install and Start Redis
 
-Use the Django management command to start the worker:
+**Windows:**
+```bash
+# Download Redis from https://redis.io/download
+# Or use Docker:
+docker run -d -p 6379:6379 redis:latest
+```
+
+**Ubuntu/Linux:**
+```bash
+sudo apt-get install redis-server
+sudo systemctl start redis-server
+```
+
+**macOS:**
+```bash
+brew install redis
+brew services start redis
+```
+
+### 3. Run Database Migrations
 
 ```bash
-# Basic usage
-python manage.py run_worker
-
-# With options
-python manage.py run_worker --browser chromium --headless --concurrent-jobs 1 --job-timeout 300
-
-# Run in headed mode for debugging
-python manage.py run_worker --headed
-
-# Use Firefox browser
-python manage.py run_worker --browser firefox
-
-# Increase verbosity
-python manage.py run_worker --log-level DEBUG
+python manage.py migrate
+python manage.py migrate django_celery_beat
+python manage.py migrate django_celery_results
 ```
 
-### Command Options
+## 🎯 How to Use
 
-- `--browser`: Browser type ('chromium', 'firefox', 'webkit') - default: chromium
-- `--headless`: Run in headless mode (default: True)
-- `--headed`: Run in headed mode (opposite of --headless)
-- `--concurrent-jobs`: Number of jobs to process concurrently - default: 1
-- `--job-timeout`: Timeout for each job in seconds - default: 300
-- `--log-level`: Logging level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL') - default: INFO
+### Option 1: Using Management Commands (Recommended)
 
-## Architecture
-
-### Components
-
-1. **WorkerService**: Main service class that handles job processing
-2. **WorkerManager**: Manager class for running the service
-3. **RequestAPIClient**: Client for managing request queue operations
-4. **ResponseAPIClient**: Client for managing response operations
-
-### Data Flow
-
-```
-Job (queued) → Worker picks up → Creates requests → Uses Playwright → Stores responses → Job (done)
-```
-
-### Integration Points
-
-- **Job Model**: Reads jobs with 'queued' status
-- **Spider Model**: Uses start_urls_json for initial requests
-- **RequestQueue Model**: Creates and manages request records
-- **Response Model**: Stores all response data and content
-
-## Configuration
-
-The worker can be configured through command-line options or by modifying the `WorkerService` class initialization parameters.
-
-### Default Settings
-
-- Browser: Chromium
-- Mode: Headless
-- Concurrent Jobs: 1
-- Job Timeout: 300 seconds
-- Page Timeout: 30 seconds
-- Network Idle Timeout: 10 seconds
-
-## Monitoring
-
-The worker logs all activities to both stdout and `worker.log` file. Monitor the logs for:
-
-- Job processing status
-- Request/response details
-- Error messages
-- Performance metrics
-
-## Error Handling
-
-The worker includes comprehensive error handling:
-
-- **Job Level**: Failed jobs are marked with 'failed' status
-- **Request Level**: Failed requests are logged with error responses
-- **Network Level**: Timeouts and connection errors are handled gracefully
-- **Browser Level**: Browser crashes are handled with cleanup
-
-## Development
-
-### Running for Development
-
-For development, run the worker in headed mode to see browser interactions:
-
+**Terminal 1 - Start Celery Worker:**
 ```bash
-python manage.py run_worker --headed --log-level DEBUG
+python manage.py start_celery_worker
+# Or with custom settings:
+python manage.py start_celery_worker --concurrency 8 --loglevel DEBUG
 ```
 
-### Testing
-
-The worker integrates with existing models, so test by:
-
-1. Creating a spider with start URLs
-2. Creating a job for that spider
-3. Running the worker
-4. Checking request and response records
-
-## Production Deployment
-
-For production deployment:
-
-1. Install all dependencies including Playwright browsers
-2. Run as a background service
-3. Set up log rotation for `worker.log`
-4. Monitor process health
-5. Consider running multiple worker instances for scalability
-
+**Terminal 2 - Start Celery Beat (Optional for scheduled tasks):**
 ```bash
-# Example systemd service
-# Save as /etc/systemd/system/scraping-worker.service
-[Unit]
-Description=Web Scraping Worker
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/path/to/project
-ExecStart=/path/to/venv/bin/python manage.py run_worker
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+python manage.py start_celery_beat
 ```
+
+**Terminal 3 - Manually trigger job processing:**
+```bash
+python manage.py trigger_job_check
+# Or check scheduled jobs too:
+python manage.py trigger_job_check --check-scheduled
+```
+
+### Option 2: Direct Celery Commands
+
+**Start Worker:**
+```bash
+celery -A config worker --loglevel=info --concurrency=4 --queues=job_processing,job_monitoring
+```
+
+**Start Beat Scheduler:**
+```bash
+celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+```
+
+**Monitor Tasks:**
+```bash
+celery -A config events
+```
+
+## 📋 Available Tasks
+
+### 1. `process_job(job_id, pause_minutes=5)`
+- Processes a specific job by ID
+- Displays comprehensive job information
+- Marks job as running → done/failed
+- **Queue:** `job_processing`
+
+### 2. `check_queued_jobs()`
+- Finds next available queued job
+- Automatically processes it asynchronously
+- Runs every 30 seconds via Beat scheduler
+- **Queue:** `job_monitoring`
+
+### 3. `process_scheduled_jobs()`
+- Checks for due scheduled jobs (cron expressions)
+- Creates new job instances for due schedules
+- Runs every 60 seconds via Beat scheduler
+- **Queue:** `job_monitoring`
+
+## 🔧 Configuration
+
+### Celery Settings (in `config/settings/base.py`):
+
+```python
+# Redis Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
+
+# Task Configuration
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+
+# Queue Routing
+CELERY_TASK_ROUTES = {
+    'apps.worker.tasks.process_job': {'queue': 'job_processing'},
+    'apps.worker.tasks.check_queued_jobs': {'queue': 'job_monitoring'},
+}
+
+# Periodic Tasks
+CELERY_BEAT_SCHEDULE = {
+    'check-queued-jobs': {
+        'task': 'apps.worker.tasks.check_queued_jobs',
+        'schedule': 30.0,  # Every 30 seconds
+    },
+    'process-scheduled-jobs': {
+        'task': 'apps.worker.tasks.process_scheduled_jobs', 
+        'schedule': 60.0,  # Every minute
+    },
+}
+```
+
+## 📊 What Gets Printed
+
+When a job is processed, the system displays:
+
+```
+================================================================================
+JOB PROCESSING STARTED
+================================================================================
+PROJECT INFORMATION:
+  ID: 1
+  Name: E-commerce Scraper
+  Owner: user@example.com
+  Notes: Scraping product data
+  Created: 2024-01-15 10:30:00
+
+SPIDER INFORMATION:
+  ID: 1  
+  Name: product-spider
+  Start URLs: ['https://example.com/products']
+  Settings: {'timeout': 30, 'concurrent_requests': 16}
+  Parse Rules: {'title': 'css::h1.product-title::text'}
+
+JOB INFORMATION:
+  ID: 1
+  Status: running
+  Started At: 2024-01-15 12:00:00
+  Stats: {'requests_count': 150, 'items_scraped': 75}
+  Duration: 330.0 seconds
+
+REQUEST QUEUE INFORMATION:
+  Total Requests: 150
+  Status Breakdown: {'pending': 50, 'done': 95, 'error': 5}
+  [Detailed request information...]
+
+SESSION INFORMATION:
+  Total Sessions: 2
+  [Session details with cookies and headers...]
+
+PROXY POOL INFORMATION:
+  Total Active Proxies: 10
+  Total Healthy Proxies: 8
+  [Proxy health and rotation status...]
+
+RESPONSE INFORMATION:
+  Total Responses: 95
+  Success (2xx): 90
+  Client Errors (4xx): 3
+  Server Errors (5xx): 2
+  [Response performance metrics...]
+
+SCHEDULE INFORMATION:
+  Total Schedules: 1
+  [Cron expressions and next run times...]
+================================================================================
+```
+
+## 🔍 Monitoring
+
+### View Task Results:
+```python
+from apps.worker.tasks import process_job
+
+# Queue a job
+result = process_job.delay(job_id=1)
+print(f"Task ID: {result.id}")
+print(f"Status: {result.status}")
+print(f"Result: {result.result}")
+```
+
+### Django Admin:
+- View periodic tasks in Django admin
+- Monitor task execution history
+- Adjust schedule intervals
+
+### Redis CLI Monitoring:
+```bash
+redis-cli monitor
+```
+
+## 🎛️ Production Tips
+
+1. **Multiple Workers:** Run multiple worker processes for better performance
+2. **Queue Separation:** Use different queues for different task priorities
+3. **Monitoring:** Set up Flower for web-based monitoring
+4. **Error Handling:** Tasks automatically retry on failure
+5. **Resource Limits:** Configure memory and time limits per task
+
+## 🔄 Migration from Management Command
+
+The old `run_worker` management command is still available, but Celery provides:
+
+- ✅ **Asynchronous processing** - No blocking
+- ✅ **Auto-scaling** - Multiple workers  
+- ✅ **Retry logic** - Failed task handling
+- ✅ **Monitoring** - Task status tracking
+- ✅ **Scheduling** - Periodic task execution
+- ✅ **Distribution** - Multiple servers
+
+## 🚨 Troubleshooting
+
+**Redis Connection Issues:**
+```bash
+# Test Redis connection
+redis-cli ping
+# Should return: PONG
+```
+
+**Celery Import Errors:**
+```bash
+# Check if tasks are discovered
+python manage.py shell
+>>> from apps.worker.tasks import process_job
+>>> process_job.delay(1)
+```
+
+**Task Not Executing:**
+- Ensure Redis is running
+- Check worker is consuming the correct queues
+- Verify task routing configuration
