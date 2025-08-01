@@ -3,6 +3,7 @@ Test cases for Spider model.
 """
 
 import json
+import time
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -131,6 +132,8 @@ class SpiderModelTest(BaseTestCase):
             name='spider1',
             start_urls_json=['https://example.com']
         )
+        
+        time.sleep(0.01)  # Small delay to ensure different timestamps
         
         spider2 = Spider.objects.create(
             project=self.project,
