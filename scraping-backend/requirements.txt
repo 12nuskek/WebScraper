@@ -21,6 +21,7 @@ django-filter>=25.1
 
 # Web scraping
 playwright>=1.40.0
+botasaurus>=4.0.0
 
 # Testing
 requests>=2.31.0  # For API testing script
