@@ -14,6 +14,9 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.job.models import Job
 from apps.spider.models import Spider
@@ -527,3 +530,207 @@ class WorkerStatsAndReportingTest(BaseTestCase):
         self.assertIsNotNone(duration)
         self.assertGreaterEqual(duration, 0.1)  # At least the sleep time
         self.assertLess(duration, 1.0)  # But not too long
+
+
+class FullWorkflowIntegrationTest(APITestCase, BaseTestCase):
+    """Comprehensive end-to-end integration test for the complete workflow."""
+    
+    def setUp(self):
+        """Set up test data."""
+        super().setUp()
+        self.client = APIClient()
+        self.worker = BasicWorker(poll_interval=0.1)  # Very short interval for testing
+        
+        # API endpoints
+        self.register_url = '/auth/register/'
+        self.login_url = '/auth/login/'
+        self.projects_url = '/projects/'
+        self.spiders_url = '/spiders/'
+        self.jobs_url = '/jobs/'
+    
+    @patch('basic_worker.scrape_heading_task')
+    def test_complete_user_to_job_workflow(self, mock_scrape):
+        """Test complete workflow: user registration → project → spider → job → worker processing."""
+        mock_scrape.return_value = {'heading': 'End-to-End Test Success'}
+        
+        # Step 1: Register a new user via API
+        registration_data = {
+            'email': 'workflow@example.com',
+            'password': 'secure123',
+            'password_confirm': 'secure123',
+            'first_name': 'Workflow',
+            'last_name': 'Test'
+        }
+        
+        register_response = self.client.post(
+            self.register_url,
+            registration_data,
+            format='json'
+        )
+        
+        self.assertEqual(register_response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('message', register_response.data)
+        self.assertIn('user', register_response.data)
+        
+        # Step 2: Login to get authentication token
+        login_data = {
+            'email': 'workflow@example.com',
+            'password': 'secure123'
+        }
+        
+        login_response = self.client.post(
+            self.login_url,
+            login_data,
+            format='json'
+        )
+        
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', login_response.data)
+        access_token = login_response.data['access']
+        
+        # Set authentication header for subsequent requests
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        
+        # Step 3: Create a project via API
+        project_data = {
+            'name': 'End-to-End Test Project',
+            'notes': 'Project created through complete workflow integration test'
+        }
+        
+        project_response = self.client.post(
+            self.projects_url,
+            project_data,
+            format='json'
+        )
+        
+        self.assertEqual(project_response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('id', project_response.data)
+        self.assertEqual(project_response.data['name'], 'End-to-End Test Project')
+        project_id = project_response.data['id']
+        
+        # Step 4: Create a spider via API
+        spider_data = {
+            'name': 'end-to-end-spider',
+            'project': project_id,
+            'start_urls_json': ['https://httpbin.org/html'],
+            'settings_json': {'delay': 1, 'parallel': 1}
+        }
+        
+        spider_response = self.client.post(
+            self.spiders_url,
+            spider_data,
+            format='json'
+        )
+        
+        self.assertEqual(spider_response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('id', spider_response.data)
+        self.assertEqual(spider_response.data['name'], 'end-to-end-spider')
+        spider_id = spider_response.data['id']
+        
+        # Step 5: Create a job via API
+        job_data = {
+            'spider': spider_id,
+            'status': 'queued'
+        }
+        
+        job_response = self.client.post(
+            self.jobs_url,
+            job_data,
+            format='json'
+        )
+        
+        self.assertEqual(job_response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('id', job_response.data)
+        self.assertEqual(job_response.data['status'], 'queued')
+        job_id = job_response.data['id']
+        
+        # Step 6: Process the job with the worker
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch('basic_worker.BASE_DIR', Path(temp_dir)):
+                # Get the job (like worker would)
+                job = Job.objects.get(id=job_id)
+                self.assertEqual(job.status, 'queued')
+                
+                # Process the job (like worker would)
+                next_job = self.worker.get_next_job()
+                self.assertEqual(next_job.id, job_id)
+                
+                self.worker.process_job(next_job)
+                
+                # Step 7: Verify job was processed successfully
+                job.refresh_from_db()
+                self.assertEqual(job.status, 'done')
+                self.assertIsNotNone(job.started_at)
+                self.assertIsNotNone(job.finished_at)
+                self.assertIsNotNone(job.stats_json)
+                
+                # Verify stats contain expected data
+                stats = job.stats_json
+                self.assertIn('success', stats)
+                self.assertTrue(stats['success'])
+                self.assertIn('file_path', stats)
+                
+                # Step 8: Verify via API that job is completed
+                job_detail_response = self.client.get(f'{self.jobs_url}{job_id}/')
+                self.assertEqual(job_detail_response.status_code, status.HTTP_200_OK)
+                self.assertEqual(job_detail_response.data['status'], 'done')
+                self.assertIsNotNone(job_detail_response.data['duration'])
+                
+                # Step 9: Verify result file was created and contains expected data
+                if 'file_path' in stats:
+                    result_file_path = stats['file_path']
+                    self.assertTrue(os.path.exists(result_file_path))
+                    
+                    with open(result_file_path, 'r') as f:
+                        result_data = json.load(f)
+                    
+                    self.assertIn('message', result_data)
+                    self.assertIn('data', result_data)
+                    self.assertEqual(result_data['data']['heading'], 'End-to-End Test Success')
+        
+        # Step 10: Verify database relationships are correct
+        # Verify user was created
+        user = User.objects.get(email='workflow@example.com')
+        self.assertEqual(user.first_name, 'Workflow')
+        self.assertEqual(user.last_name, 'Test')
+        
+        # Verify project belongs to user
+        project = Project.objects.get(id=project_id)
+        self.assertEqual(project.owner, user)
+        self.assertEqual(project.name, 'End-to-End Test Project')
+        
+        # Verify spider belongs to project
+        spider = Spider.objects.get(id=spider_id)
+        self.assertEqual(spider.project, project)
+        self.assertEqual(spider.name, 'end-to-end-spider')
+        
+        # Verify job belongs to spider
+        final_job = Job.objects.get(id=job_id)
+        self.assertEqual(final_job.spider, spider)
+        self.assertEqual(final_job.status, 'done')
+        
+        print("✅ Complete workflow test passed: User → Project → Spider → Job → Worker Processing")
+    
+    def test_workflow_with_authentication_required(self):
+        """Test that all API endpoints require proper authentication."""
+        # Try to create project without authentication
+        project_data = {'name': 'Unauthorized Project'}
+        
+        response = self.client.post(self.projects_url, project_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Try to create spider without authentication
+        spider_data = {
+            'name': 'unauthorized-spider',
+            'project': 1,
+            'start_urls_json': ['https://example.com']
+        }
+        
+        response = self.client.post(self.spiders_url, spider_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Try to create job without authentication
+        job_data = {'spider': 1, 'status': 'queued'}
+        
+        response = self.client.post(self.jobs_url, job_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

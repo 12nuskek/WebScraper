@@ -62,9 +62,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
-    'django_filters',
-    'django_celery_beat',
-    'django_celery_results',
+    'django_filters'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
@@ -261,35 +259,3 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
-# =============================================================================
-# CELERY CONFIGURATION
-# =============================================================================
-
-# Celery Configuration Options
-CELERY_TIMEZONE = "UTC"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
-CELERY_WORKER_SEND_TASK_EVENTS = True
-CELERY_TASK_SEND_SENT_EVENT = True
-
-# Redis Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'django-db'  # Store results in Django database
-CELERY_CACHE_BACKEND = 'django-cache'
-
-# Task serialization
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_ACCEPT_CONTENT = ['json']
-
-# Task routing
-CELERY_TASK_ROUTES = {
-    # Worker tasks will be added when worker app is implemented
-}
-
-# Beat schedule for periodic tasks
-CELERY_BEAT_SCHEDULE = {
-    # Periodic tasks will be added when worker app is implemented
-}

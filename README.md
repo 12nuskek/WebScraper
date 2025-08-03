@@ -25,8 +25,7 @@ pip install -r scraping-backend/requirements.txt
 cd scraping-backend
 python manage.py migrate
 
-# Create superuser (optional)
-python manage.py createsuperuser
+
 ```
 
 ### 2. Start the Backend Server
@@ -46,9 +45,7 @@ source venv/bin/activate  # Activate same virtual environment
 cd scraping-backend/services/worker
 python run_worker.py
 
-# Or using the shell script
-chmod +x start_worker.sh
-./start_worker.sh
+
 ```
 
 🔧 **Worker will poll for jobs every 5 seconds**
