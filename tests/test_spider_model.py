@@ -40,14 +40,24 @@ class SpiderModelTest(BaseTestCase):
             project=self.project,
             name='test-spider',
             start_urls_json=['https://example.com', 'https://test.com'],
-            settings_json={'delay': 1, 'timeout': 30},
+            settings_json={
+                'block_images': True,
+                'headless': False,
+                'max_retry': 3,
+                'parallel': 2,
+                'user_agent': 'Custom Bot'
+            },
             parse_rules_json={'title': 'h1', 'links': 'a[href]'}
         )
         
         self.assertEqual(spider.name, 'test-spider')
         self.assertEqual(spider.project, self.project)
         self.assertEqual(spider.start_urls_json, ['https://example.com', 'https://test.com'])
-        self.assertEqual(spider.settings_json, {'delay': 1, 'timeout': 30})
+        self.assertEqual(spider.settings_json['block_images'], True)
+        self.assertEqual(spider.settings_json['headless'], False)
+        self.assertEqual(spider.settings_json['max_retry'], 3)
+        self.assertEqual(spider.settings_json['parallel'], 2)
+        self.assertEqual(spider.settings_json['user_agent'], 'Custom Bot')
         self.assertEqual(spider.parse_rules_json, {'title': 'h1', 'links': 'a[href]'})
         self.assertIsNotNone(spider.created_at)
         
@@ -144,3 +154,65 @@ class SpiderModelTest(BaseTestCase):
         spiders = list(Spider.objects.all())
         self.assertEqual(spiders[0], spider2)  # Most recent first
         self.assertEqual(spiders[1], spider1)
+    
+    def test_spider_structured_settings(self):
+        """Test spider with all structured settings fields."""
+        settings = {
+            'block_images': True,
+            'block_images_and_css': False,
+            'tiny_profile': True,
+            'profile': 'mobile',
+            'user_agent': 'Mozilla/5.0 Custom Bot',
+            'window_size': '1920x1080',
+            'headless': True,
+            'wait_for_complete_page_load': False,
+            'reuse_driver': True,
+            'max_retry': 5,
+            'parallel': 4,
+            'cache': True
+        }
+        
+        spider = Spider.objects.create(
+            project=self.project,
+            name='full-settings-spider',
+            start_urls_json=['https://example.com'],
+            settings_json=settings
+        )
+        
+        self.assertEqual(spider.settings_json, settings)
+        self.assertTrue(spider.settings_json['block_images'])
+        self.assertFalse(spider.settings_json['block_images_and_css'])
+        self.assertEqual(spider.settings_json['profile'], 'mobile')
+        self.assertEqual(spider.settings_json['max_retry'], 5)
+        self.assertEqual(spider.settings_json['parallel'], 4)
+        
+    def test_spider_partial_settings(self):
+        """Test spider with only some settings fields."""
+        settings = {
+            'headless': True,
+            'max_retry': 2,
+            'user_agent': 'Simple Bot'
+        }
+        
+        spider = Spider.objects.create(
+            project=self.project,
+            name='partial-settings-spider',
+            start_urls_json=['https://example.com'],
+            settings_json=settings
+        )
+        
+        self.assertEqual(spider.settings_json, settings)
+        self.assertTrue(spider.settings_json['headless'])
+        self.assertEqual(spider.settings_json['max_retry'], 2)
+        self.assertEqual(spider.settings_json['user_agent'], 'Simple Bot')
+        
+    def test_spider_empty_settings(self):
+        """Test spider with empty settings object."""
+        spider = Spider.objects.create(
+            project=self.project,
+            name='empty-settings-spider',
+            start_urls_json=['https://example.com'],
+            settings_json={}
+        )
+        
+        self.assertEqual(spider.settings_json, {})
