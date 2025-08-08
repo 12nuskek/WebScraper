@@ -1,117 +1,36 @@
-# WebScraper Frontend
-
-A modern Next.js dashboard for the WebScraper application built with TypeScript, Tailwind CSS, and component-driven architecture.
-
-## Features
-
-- 📊 **Interactive Dashboard** - Real-time overview of scraping activities
-- 🎨 **Modern UI Components** - Built with Tailwind CSS and custom components
-- 📱 **Responsive Design** - Works seamlessly on desktop and mobile
-- 🔧 **Component-Driven** - Modular and reusable component architecture
-- ⚡ **Fast Development** - Hot reload and TypeScript support
-- 🎯 **Type Safety** - Full TypeScript integration
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-### Prerequisites
+First, run the development server:
 
-- Node.js 18+ 
-- npm or yarn
-
-### Installation
-
-1. Install dependencies:
-```bash
-npm install
-# or
-yarn install
-```
-
-2. Copy environment variables:
-```bash
-cp .env.example .env.local
-```
-
-3. Start the development server:
 ```bash
 npm run dev
 # or
 yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Project Structure
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```
-src/
-├── app/                 # Next.js App Router
-│   ├── globals.css     # Global styles
-│   ├── layout.tsx      # Root layout
-│   └── page.tsx        # Home page
-├── components/         # React components
-│   ├── ui/            # Reusable UI components
-│   ├── dashboard/     # Dashboard-specific components
-│   ├── Dashboard.tsx  # Main dashboard component
-│   ├── Header.tsx     # Header component
-│   └── Sidebar.tsx    # Sidebar navigation
-└── lib/               # Utility functions
-    └── utils.ts       # Common utilities
-```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Available Scripts
+## Learn More
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript compiler check
+To learn more about Next.js, take a look at the following resources:
 
-## Key Components
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Dashboard Components
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-- **StatCard** - Display key metrics with icons and trend indicators
-- **RecentActivity** - Show recent scraping activities and their status
-- **ProjectOverview** - Manage and monitor active scraping projects
-- **ChartPlaceholder** - Placeholder for future chart integration
+## Deploy on Vercel
 
-### UI Components
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-- **Card** - Flexible container component
-- **Button** - Customizable button with multiple variants
-- **Badge** - Status indicators and labels
-
-## Future Integrations
-
-This dashboard is prepared for integration with:
-
-- **Backend API** - Connect to Django REST API
-- **Real-time Updates** - WebSocket integration for live data
-- **Authentication** - User management and session handling
-- **Charts & Analytics** - Data visualization libraries
-- **Database Integration** - Direct connection to scraped data
-
-## Styling
-
-The project uses Tailwind CSS with a custom design system:
-
-- **Color Palette** - Consistent color variables
-- **Component Variants** - Multiple styles for each component
-- **Responsive Design** - Mobile-first approach
-- **Dark Mode Ready** - CSS variables for theme switching
-
-## Contributing
-
-1. Follow the existing component structure
-2. Use TypeScript for type safety
-3. Follow the established naming conventions
-4. Write clean, readable code with proper documentation
-
-## Technologies Used
-
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety and better developer experience
-- **Tailwind CSS** - Utility-first CSS framework
-- **Lucide React** - Beautiful and consistent icons
-- **ESLint** - Code linting and formatting
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
