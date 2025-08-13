@@ -10,14 +10,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
- 
 import { apiFetch, createJob } from "@/lib/api"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/data-table"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, PlusCircle } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
@@ -29,6 +30,8 @@ type Spider = {
   project: number
   name: string
   start_urls_json: string[] | string | Record<string, unknown> | null
+  settings_json: Record<string, unknown> | null
+  parse_rules_json: Record<string, unknown> | null
   created_at: string
 }
 
@@ -39,6 +42,8 @@ type Project = {
   name: string
 }
 
+type ParseRule = { id: string; key: string; value: string }
+
 export default function SpidersPage() {
   const [data, setData] = React.useState<Paginated<Spider>>({ count: 0, results: [] })
   const [loading, setLoading] = React.useState(true)
@@ -47,6 +52,19 @@ export default function SpidersPage() {
   const [formProject, setFormProject] = React.useState<string>("")
   const [formName, setFormName] = React.useState<string>("")
   const [formStartUrls, setFormStartUrls] = React.useState<string>("")
+
+  // Browser Settings
+  const [formHeadless, setFormHeadless] = React.useState<boolean>(true)
+  const [formBlockImages, setFormBlockImages] = React.useState<boolean>(false)
+  const [formBlockImagesAndCss, setFormBlockImagesAndCss] = React.useState<boolean>(false)
+  const [formUserAgent, setFormUserAgent] = React.useState<string>("")
+  const [formWindowSize, setFormWindowSize] = React.useState<string>("")
+  const [formWaitForCompletePageLoad, setFormWaitForCompletePageLoad] = React.useState<boolean>(false)
+  const [formMaxRetry, setFormMaxRetry] = React.useState<number>(3)
+
+  // Parsing Rules
+  const [formParseRules, setFormParseRules] = React.useState<ParseRule[]>([])
+
   const [saving, setSaving] = React.useState(false)
   const [projects, setProjects] = React.useState<Project[]>([])
   const [projectsLoading, setProjectsLoading] = React.useState<boolean>(false)
@@ -83,18 +101,32 @@ export default function SpidersPage() {
     })()
   }, [])
 
-  function openCreate() {
-    setEditing(null)
+  function resetForm() {
     setFormProject("")
     setFormName("")
     setFormStartUrls("")
+    setFormHeadless(true)
+    setFormBlockImages(false)
+    setFormBlockImagesAndCss(false)
+    setFormUserAgent("")
+    setFormWindowSize("")
+    setFormWaitForCompletePageLoad(false)
+    setFormMaxRetry(3)
+    setFormParseRules([])
+  }
+
+  function openCreate() {
+    setEditing(null)
+    resetForm()
     setFormCardOpen(true)
   }
 
   function openEdit(s: Spider) {
     setEditing(s)
+    resetForm()
     setFormProject(String(s.project))
     setFormName(s.name)
+
     const urls = Array.isArray(s.start_urls_json)
       ? (s.start_urls_json as string[])
       : typeof s.start_urls_json === "string"
@@ -103,6 +135,26 @@ export default function SpidersPage() {
       ? ((s.start_urls_json as any).urls as string[])
       : []
     setFormStartUrls(urls.join("\n"))
+
+    if (s.settings_json) {
+      setFormHeadless(s.settings_json.headless === true)
+      setFormBlockImages(s.settings_json.block_images === true)
+      setFormBlockImagesAndCss(s.settings_json.block_images_and_css === true)
+      setFormUserAgent(s.settings_json.user_agent as string || "")
+      setFormWindowSize(s.settings_json.window_size as string || "")
+      setFormWaitForCompletePageLoad(s.settings_json.wait_for_complete_page_load === true)
+      setFormMaxRetry(s.settings_json.max_retry as number ?? 3)
+    }
+
+    if (s.parse_rules_json) {
+      const rules = Object.entries(s.parse_rules_json).map(([key, value]) => ({
+        id: crypto.randomUUID(),
+        key,
+        value: value as string,
+      }))
+      setFormParseRules(rules)
+    }
+
     setFormCardOpen(true)
   }
 
@@ -118,7 +170,31 @@ export default function SpidersPage() {
       .split(/\n|\r|,/)
       .map((s) => s.trim())
       .filter(Boolean)
-    const payload = { project, name: formName.trim(), start_urls_json }
+
+    const settings_json: Record<string, unknown> = {
+      headless: formHeadless,
+      block_images: formBlockImages,
+      block_images_and_css: formBlockImagesAndCss,
+      wait_for_complete_page_load: formWaitForCompletePageLoad,
+      max_retry: formMaxRetry,
+    }
+    if (formUserAgent) settings_json.user_agent = formUserAgent
+    if (formWindowSize) settings_json.window_size = formWindowSize
+
+    const parse_rules_json: Record<string, string> = {}
+    for (const rule of formParseRules) {
+      if (rule.key && rule.value) {
+        parse_rules_json[rule.key] = rule.value
+      }
+    }
+
+    const payload = {
+      project,
+      name: formName.trim(),
+      start_urls_json,
+      settings_json,
+      parse_rules_json,
+    }
     const res = await apiFetch<Spider>(editing ? `/spiders/${editing.id}/` : "/spiders/", {
       method: editing ? "PUT" : "POST",
       body: JSON.stringify(payload),
@@ -291,34 +367,118 @@ export default function SpidersPage() {
             </CardContent>
           </Card>
           <Dialog open={formCardOpen} onOpenChange={setFormCardOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>{editing ? "Edit Spider" : "New Spider"}</DialogTitle>
               </DialogHeader>
-              <form id="spider-form" onSubmit={submitSpider} className="flex flex-col gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="spider-project">Project</Label>
-                  <Select value={formProject} onValueChange={setFormProject}>
-                    <SelectTrigger id="spider-project">
-                      <SelectValue placeholder={projectsLoading ? "Loading projects…" : "Select a project"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} (#{p.id})
-                        </SelectItem>
+              <form id="spider-form" onSubmit={submitSpider}>
+                <Tabs defaultValue="general">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="settings">Browser Settings</TabsTrigger>
+                    <TabsTrigger value="parsing">Parsing Rules</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="general" className="flex flex-col gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="spider-project">Project</Label>
+                      <Select value={formProject} onValueChange={setFormProject}>
+                        <SelectTrigger id="spider-project">
+                          <SelectValue placeholder={projectsLoading ? "Loading projects…" : "Select a project"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.name} (#{p.id})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="spider-name">Name</Label>
+                      <Input id="spider-name" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="spider-urls">Start URLs (one per line)</Label>
+                      <Textarea id="spider-urls" value={formStartUrls} onChange={(e) => setFormStartUrls(e.target.value)} rows={8} />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="settings" className="grid gap-y-6 gap-x-4 md:grid-cols-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="headless" checked={formHeadless} onCheckedChange={setFormHeadless} />
+                      <Label htmlFor="headless">Headless Browser</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="block_images" checked={formBlockImages} onCheckedChange={setFormBlockImages} />
+                      <Label htmlFor="block_images">Block Images</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="block_images_and_css" checked={formBlockImagesAndCss} onCheckedChange={setFormBlockImagesAndCss} />
+                      <Label htmlFor="block_images_and_css">Block Images and CSS</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="wait_for_complete_page_load" checked={formWaitForCompletePageLoad} onCheckedChange={setFormWaitForCompletePageLoad} />
+                      <Label htmlFor="wait_for_complete_page_load">Wait for Full Page Load</Label>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="user-agent">User Agent</Label>
+                      <Input id="user-agent" value={formUserAgent} onChange={(e) => setFormUserAgent(e.target.value)} placeholder="e.g. Mozilla/5.0..." />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="window-size">Window Size</Label>
+                      <Input id="window-size" value={formWindowSize} onChange={(e) => setFormWindowSize(e.target.value)} placeholder="e.g. 1920x1080" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="max-retry">Max Retries</Label>
+                      <Input id="max-retry" type="number" value={formMaxRetry} onChange={(e) => setFormMaxRetry(Number(e.target.value))} />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="parsing">
+                    <div className="flex flex-col gap-4">
+                      {formParseRules.map((rule, index) => (
+                        <div key={rule.id} className="flex items-center gap-2">
+                          <Input
+                            placeholder="Key (e.g. title)"
+                            value={rule.key}
+                            onChange={(e) => {
+                              const newRules = [...formParseRules]
+                              newRules[index].key = e.target.value
+                              setFormParseRules(newRules)
+                            }}
+                          />
+                          <Input
+                            placeholder="Value (e.g. h1)"
+                            value={rule.value}
+                            onChange={(e) => {
+                              const newRules = [...formParseRules]
+                              newRules[index].value = e.target.value
+                              setFormParseRules(newRules)
+                            }}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              const newRules = formParseRules.filter((_, i) => i !== index)
+                              setFormParseRules(newRules)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="spider-name">Name</Label>
-                  <Input id="spider-name" value={formName} onChange={(e) => setFormName(e.target.value)} required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="spider-urls">Start URLs (one per line)</Label>
-                  <Textarea id="spider-urls" value={formStartUrls} onChange={(e) => setFormStartUrls(e.target.value)} rows={8} />
-                </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormParseRules([...formParseRules, { id: crypto.randomUUID(), key: "", value: "" }])}
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Rule
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </form>
               <DialogFooter>
                 <div className="flex gap-2">
