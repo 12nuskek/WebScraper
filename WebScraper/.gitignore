@@ -1,0 +1,40 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Databases
+*.sqlite3
+database/*.sqlite3
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/.next/
+ui-main/**/.next/
+.vercel/
+
+# Logs
+*.log
+logs/
+
+# Builds / Dist
+dist/
+build/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+

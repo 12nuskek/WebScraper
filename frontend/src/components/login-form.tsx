@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,34 +11,44 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { login, setAuthTokens } from "@/lib/api"
-import { useAuth } from "@/lib/auth"
+import * as React from "react"
+import { useRouter } from "next/navigation"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
-  const { setUserEmail } = useAuth()
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [loading, setLoading] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSubmitting(true)
     setError(null)
-    setLoading(true)
-    const res = await login(email, password)
-    setLoading(false)
-    if (!res.ok || !res.data) {
-      setError(typeof res.error === "string" ? res.error : "Login failed")
-      return
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.detail || "Invalid credentials")
+      }
+
+      router.push("/")
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed")
+    } finally {
+      setIsSubmitting(false)
     }
-    setAuthTokens({ access: res.data.access, refresh: res.data.refresh })
-    setUserEmail(res.data.user?.email ?? email)
-    router.replace("/dashboard")
   }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -53,9 +61,6 @@ export function LoginForm({
         <CardContent>
           <form onSubmit={onSubmit}>
             <div className="flex flex-col gap-6">
-              {error && (
-                <div className="text-sm text-red-600">{error}</div>
-              )}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -85,9 +90,15 @@ export function LoginForm({
                   required
                 />
               </div>
+              {error ? (
+                <p className="text-sm text-red-500">{error}</p>
+              ) : null}
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Logging in..." : "Login"}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Button>
+                <Button variant="outline" className="w-full" type="button">
+                  Login with Google
                 </Button>
               </div>
             </div>
