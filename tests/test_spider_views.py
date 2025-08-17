@@ -38,96 +38,102 @@ class SpiderAPITest(APITestCase, BaseTestCase):
         )
 
     def test_create_spider_with_structured_settings(self):
-        """Test creating a spider via API with structured settings."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'api-test-spider',
-            'start_urls_json': ['https://example.com', 'https://test.com'],
-            'settings_json': {
-                'block_images': True,
-                'headless': False,
-                'max_retry': 3,
-                'parallel': 2,
-                'user_agent': 'API Test Bot',
-                'window_size': '1920x1080'
+        """Test creating a spider via API with nested settings."""
+        payload = {
+            'Spider': {
+                'Name': 'api-test-spider',
+                'Project': self.project.id,
             },
-            'parse_rules_json': {'title': 'h1', 'links': 'a[href]'}
-        }
-        
-        url = reverse('spider-list')  # Adjust URL name based on your URL configuration
-        response = self.client.post(url, data=spider_data, format='json')
-        
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['name'], 'api-test-spider')
-        self.assertEqual(response.data['settings_json']['block_images'], True)
-        self.assertEqual(response.data['settings_json']['max_retry'], 3)
-        self.assertEqual(response.data['settings_json']['user_agent'], 'API Test Bot')
-
-    def test_create_spider_with_invalid_settings(self):
-        """Test creating a spider with invalid settings structure."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'invalid-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': {
-                'max_retry': -1,  # Invalid: negative value
-                'parallel': 0,    # Invalid: must be at least 1
-                'headless': 'not_boolean'  # Invalid: not a boolean
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Block_Images': True,
+                'Headless_Mode': False,
+                'Parallel_Instances': 2,
+                'User_Agent': 'API Test Bot',
+                'Window_Size': '1920x1080'
+            },
+            'RetryPolicy': {
+                'Max_Retries': 3
+            },
+            'Output': {
+                'Filename': 'out',
+                'Formats': ['json']
             }
         }
-        
         url = reverse('spider-list')
-        response = self.client.post(url, data=spider_data, format='json')
-        
+        response = self.client.post(url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data['Spider']['Name'], 'api-test-spider')
+        self.assertEqual(response.data['Execution']['Block_Images'], True)
+        self.assertEqual(response.data['Execution']['User_Agent'], 'API Test Bot')
+
+    def test_create_spider_with_invalid_settings(self):
+        """Test creating a spider with invalid nested settings structure."""
+        payload = {
+            'Spider': {
+                'Name': 'invalid-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Parallel_Instances': 0,
+                'Headless_Mode': 'nope'
+            }
+        }
+        url = reverse('spider-list')
+        response = self.client.post(url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('settings_json', response.data)
+        self.assertIn('Execution', response.data)
 
     def test_create_spider_with_null_settings(self):
-        """Test creating a spider with null settings."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'null-settings-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': None
+        """Test creating a spider with minimal nested payload."""
+        payload = {
+            'Spider': {
+                'Name': 'null-settings-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {}
         }
-        
         url = reverse('spider-list')
-        response = self.client.post(url, data=spider_data, format='json')
-        
+        response = self.client.post(url, data=payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIsNone(response.data['settings_json'])
+        self.assertEqual(response.data['Target']['URL'], 'https://example.com')
 
     def test_update_spider_settings(self):
-        """Test updating spider settings via API."""
+        """Test updating spider settings via API using nested blocks."""
         spider = Spider.objects.create(
             project=self.project,
             name='update-test-spider',
             start_urls_json=['https://example.com'],
             settings_json={'headless': False, 'max_retry': 1}
         )
-        
-        update_data = {
-            'settings_json': {
-                'headless': True,
-                'max_retry': 5,
-                'parallel': 3,
-                'cache': True,
-                'user_agent': 'Updated Bot'
+        update_payload = {
+            'Execution': {
+                'Headless_Mode': True,
+                'Parallel_Instances': 3,
+                'User_Agent': 'Updated Bot'
+            },
+            'RetryPolicy': {
+                'Max_Retries': 5
             }
         }
-        
         url = reverse('spider-detail', kwargs={'pk': spider.pk})
-        response = self.client.patch(url, data=update_data, format='json')
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['settings_json']['headless'], True)
-        self.assertEqual(response.data['settings_json']['max_retry'], 5)
-        self.assertEqual(response.data['settings_json']['parallel'], 3)
-        self.assertEqual(response.data['settings_json']['cache'], True)
-        self.assertEqual(response.data['settings_json']['user_agent'], 'Updated Bot')
+        response = self.client.patch(url, data=update_payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['Execution']['Headless_Mode'], True)
+        self.assertEqual(response.data['Execution']['Parallel_Instances'], 3)
+        self.assertEqual(response.data['Execution']['User_Agent'], 'Updated Bot')
+        self.assertEqual(response.data['RetryPolicy']['Max_Retries'], 5)
 
     def test_get_spider_with_settings(self):
-        """Test retrieving spider with structured settings."""
+        """Test retrieving spider returns nested blocks mapping from settings_json."""
         settings = {
             'block_images': True,
             'tiny_profile': False,
@@ -136,50 +142,37 @@ class SpiderAPITest(APITestCase, BaseTestCase):
             'max_retry': 4,
             'parallel': 2
         }
-        
         spider = Spider.objects.create(
             project=self.project,
             name='get-test-spider',
             start_urls_json=['https://example.com'],
             settings_json=settings
         )
-        
         url = reverse('spider-detail', kwargs={'pk': spider.pk})
         response = self.client.get(url)
-        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['settings_json'], settings)
+        self.assertEqual(response.data['Spider']['Name'], 'get-test-spider')
+        self.assertEqual(response.data['Execution']['Headless_Mode'], True)
+        self.assertEqual(response.data['Execution']['Parallel_Instances'], 2)
 
     def test_list_spiders_with_settings(self):
-        """Test listing spiders includes structured settings."""
-        spider1 = Spider.objects.create(
+        """Test listing spiders includes nested blocks and derived values."""
+        Spider.objects.create(
             project=self.project,
             name='list-spider-1',
             start_urls_json=['https://example.com'],
             settings_json={'headless': True, 'max_retry': 2}
         )
-        
         url = reverse('spider-list')
         response = self.client.get(url)
-        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Check that the response contains our spider and settings are properly serialized
         response_data = response.data
-        if isinstance(response_data, dict) and 'results' in response_data:
-            # Handle paginated response
-            spiders = response_data['results']
-        else:
-            # Handle direct list response
-            spiders = response_data
-        
-        # Find our spider in the response
+        spiders = response_data['results'] if isinstance(response_data, dict) and 'results' in response_data else response_data
         our_spider = None
-        for spider in spiders:
-            if spider['name'] == 'list-spider-1':
-                our_spider = spider
+        for sp in spiders:
+            if sp['Spider']['Name'] == 'list-spider-1':
+                our_spider = sp
                 break
-        
         self.assertIsNotNone(our_spider, "Our test spider should be in the response")
-        self.assertEqual(our_spider['settings_json']['headless'], True)
-        self.assertEqual(our_spider['settings_json']['max_retry'], 2)
+        self.assertEqual(our_spider['Execution']['Headless_Mode'], True)
+        self.assertEqual(our_spider['RetryPolicy']['Max_Retries'], 2)

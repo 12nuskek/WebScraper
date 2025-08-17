@@ -60,7 +60,11 @@ class SpiderViewSet(viewsets.ModelViewSet):
 
     # optional: /projects/{project_pk}/spiders/ nested route support
     def perform_create(self, serializer):
-        project_id = self.request.data.get("project") or self.kwargs.get("project_pk")
+        project_id = (
+            self.request.data.get("project")
+            or (self.request.data.get("Spider") or {}).get("Project")
+            or self.kwargs.get("project_pk")
+        )
         project = get_object_or_404(
             Project, pk=project_id, owner=self.request.user
         )

@@ -147,4 +147,25 @@ server.log
 !database/db.sqlite3-journal
 # Next.js
 .next/
+**/.next/
+.vercel/
+.turbo/
+**/.turbo/
+dist/
+build/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# App-specific frontend artifacts
+frontend/.next/
+frontend/node_modules/
+ui-main/**/.next/
+ui-main/**/node_modules/
+
+# Local dev logs
+dev-server.log
+dev.log
+runserver.log
 

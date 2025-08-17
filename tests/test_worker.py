@@ -609,23 +609,25 @@ class FullWorkflowIntegrationTest(APITestCase, BaseTestCase):
         project_id = project_response.data['id']
         
         # Step 4: Create a spider via API
-        spider_data = {
-            'name': 'end-to-end-spider',
-            'project': project_id,
-            'start_urls_json': ['https://httpbin.org/html'],
-            'settings_json': {'delay': 1, 'parallel': 1}
+        spider_payload = {
+            'Spider': {
+                'Name': 'end-to-end-spider',
+                'Project': project_id
+            },
+            'Target': {
+                'URL': 'https://httpbin.org/html'
+            },
+            'Execution': {
+                'Parallel_Instances': 1
+            }
         }
-        
-        spider_response = self.client.post(
-            self.spiders_url,
-            spider_data,
-            format='json'
-        )
+        spider_response = self.client.post(self.spiders_url, spider_payload, format='json')
         
         self.assertEqual(spider_response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('id', spider_response.data)
-        self.assertEqual(spider_response.data['name'], 'end-to-end-spider')
-        spider_id = spider_response.data['id']
+        self.assertIn('Spider', spider_response.data)
+        self.assertEqual(spider_response.data['Spider']['Name'], 'end-to-end-spider')
+        # Fetch created spider ID via DB lookup since response schema changed
+        spider_id = Spider.objects.get(name='end-to-end-spider', project_id=project_id).id
         
         # Step 5: Create a job via API
         job_data = {

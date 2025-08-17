@@ -80,16 +80,39 @@ class BasicWorker:
             # SECTION 1: INCOMING JOB DATA (JSON FORMAT)
             # ================================================================
             print("\n🔸 INCOMING JOB DATA:")
+            spider = job.spider
+            spider_data = {
+                'id': spider.id,
+                'name': spider.name,
+                'external_id': spider.external_id,
+                'description': spider.description,
+                'category': spider.category,
+                'status': spider.status,
+                'priority': spider.priority,
+                'created_at': spider.created_at.isoformat() if getattr(spider, 'created_at', None) else None,
+                'project': {
+                    'id': spider.project.id,
+                    'name': getattr(spider.project, 'name', None),
+                },
+                'start_urls_json': spider.start_urls_json,
+                'settings_json': spider.settings_json,
+                'parse_rules_json': spider.parse_rules_json,
+                'target_json': spider.target_json,
+                'execution_json': spider.execution_json,
+                'output_json': spider.output_json,
+                'retry_policy_json': spider.retry_policy_json,
+                'advanced_json': spider.advanced_json,
+            }
             job_data = {
                 'job_id': job.id,
-                'spider_name': job.spider.name,
                 'status': job.status,
                 'created_at': job.created_at.isoformat(),
-                'spider_id': job.spider.id,
-                # Add any other job fields you want to see
+                'started_at': job.started_at.isoformat() if job.started_at else None,
+                'finished_at': job.finished_at.isoformat() if job.finished_at else None,
+                'spider': spider_data,
             }
-            print(json.dumps(job_data, indent=2))
-            
+            print(json.dumps(job_data, indent=2, ensure_ascii=False))
+
             # ================================================================
             # SECTION 2: YOUR CUSTOM CODE GOES HERE
             # ================================================================

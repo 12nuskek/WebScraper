@@ -126,122 +126,146 @@ class SpiderSerializerTest(BaseTestCase):
         )
 
     def test_valid_spider_with_structured_settings(self):
-        """Test creating spider with valid structured settings."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'test-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': {
-                'block_images': True,
-                'headless': False,
-                'max_retry': 3,
-                'parallel': 2,
-                'user_agent': 'Custom Bot'
+        """Test creating spider with valid nested settings payload."""
+        payload = {
+            'Spider': {
+                'Id': 'test-spider',
+                'Name': 'test-spider',
+                'Project': self.project.id,
             },
-            'parse_rules_json': {'title': 'h1'}
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Block_Images': True,
+                'Headless_Mode': False,
+                'Parallel_Instances': 2,
+                'User_Agent': 'Custom Bot'
+            },
+            'Advanced': {
+                'Reuse_Driver': True
+            }
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
-        self.assertTrue(serializer.is_valid())
-        
+        serializer = SpiderSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
         spider = serializer.save()
         self.assertEqual(spider.name, 'test-spider')
+        self.assertEqual(spider.start_urls_json, ['https://example.com'])
         self.assertEqual(spider.settings_json['block_images'], True)
-        self.assertEqual(spider.settings_json['max_retry'], 3)
+        self.assertEqual(spider.settings_json['parallel'], 2)
+        self.assertEqual(spider.settings_json['user_agent'], 'Custom Bot')
 
     def test_spider_with_null_settings(self):
-        """Test creating spider with null settings."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'minimal-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': None
+        """Test creating spider with minimal nested payload (no execution settings)."""
+        payload = {
+            'Spider': {
+                'Name': 'minimal-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {}
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
-        self.assertTrue(serializer.is_valid())
-        
+        serializer = SpiderSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
         spider = serializer.save()
         self.assertIsNone(spider.settings_json)
 
     def test_spider_with_empty_settings(self):
-        """Test creating spider with empty settings object."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'empty-settings-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': {}
+        """Test creating spider with empty execution block (equivalent to empty settings)."""
+        payload = {
+            'Spider': {
+                'Name': 'empty-settings-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {}
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
-        self.assertTrue(serializer.is_valid())
-        
+        serializer = SpiderSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
         spider = serializer.save()
-        self.assertEqual(spider.settings_json, {})
+        self.assertIsNone(spider.settings_json)
 
     def test_invalid_settings_not_dict(self):
-        """Test validation fails when settings_json is not a dict."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'invalid-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': "not a dict"
+        """Test validation fails for invalid nested values (e.g., negative retries)."""
+        payload = {
+            'Spider': {
+                'Name': 'invalid-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Parallel_Instances': 0
+            },
+            'RetryPolicy': {
+                'Max_Retries': -1
+            }
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
+        serializer = SpiderSerializer(data=payload)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('settings_json', serializer.errors)
+        self.assertIn('Execution', serializer.errors)
+        self.assertIn('RetryPolicy', serializer.errors)
 
     def test_invalid_settings_structure(self):
-        """Test validation fails with invalid settings structure."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'invalid-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': {
-                'max_retry': -1,  # Invalid: negative value
-                'parallel': 0,    # Invalid: must be at least 1
-                'headless': "not a boolean"  # Invalid: not a boolean
+        """Test validation fails with invalid nested settings structure."""
+        payload = {
+            'Spider': {
+                'Name': 'invalid-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Headless_Mode': 'not a boolean'
             }
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
+        serializer = SpiderSerializer(data=payload)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('settings_json', serializer.errors)
+        self.assertIn('Execution', serializer.errors)
 
     def test_valid_settings_with_all_fields(self):
-        """Test validation passes with all valid settings fields."""
-        spider_data = {
-            'project': self.project.id,
-            'name': 'full-spider',
-            'start_urls_json': ['https://example.com'],
-            'settings_json': {
-                'block_images': True,
-                'block_images_and_css': False,
-                'tiny_profile': True,
-                'profile': 'mobile',
-                'user_agent': 'Mozilla/5.0 Custom Bot',
-                'window_size': '1920x1080',
-                'headless': True,
-                'wait_for_complete_page_load': False,
-                'reuse_driver': True,
-                'max_retry': 5,
-                'parallel': 4,
-                'cache': True
+        """Test validation passes with all valid nested settings fields."""
+        payload = {
+            'Spider': {
+                'Name': 'full-spider',
+                'Project': self.project.id,
+            },
+            'Target': {
+                'URL': 'https://example.com'
+            },
+            'Execution': {
+                'Block_Images': True,
+                'User_Agent': 'Mozilla/5.0 Custom Bot',
+                'Window_Size': '1920x1080',
+                'Headless_Mode': True,
+                'Profile_Name': 'mobile',
+                'Parallel_Instances': 4
+            },
+            'RetryPolicy': {
+                'Max_Retries': 5,
+                'Result_Caching': True
+            },
+            'Advanced': {
+                'Wait_For_Complete_Page_Load': False,
+                'Reuse_Driver': True
             }
         }
-        
-        serializer = SpiderSerializer(data=spider_data)
-        self.assertTrue(serializer.is_valid())
-        
+        serializer = SpiderSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
         spider = serializer.save()
-        self.assertEqual(spider.settings_json['block_images'], True)
+        self.assertTrue(spider.settings_json['block_images'])
         self.assertEqual(spider.settings_json['max_retry'], 5)
         self.assertEqual(spider.settings_json['parallel'], 4)
         self.assertEqual(spider.settings_json['profile'], 'mobile')
 
     def test_serializer_output_includes_settings(self):
-        """Test serializer output includes settings_json correctly."""
+        """Test serializer output returns nested blocks with derived values."""
         spider = Spider.objects.create(
             project=self.project,
             name='output-test-spider',
@@ -252,34 +276,35 @@ class SpiderSerializerTest(BaseTestCase):
                 'user_agent': 'Test Bot'
             }
         )
-        
         serializer = SpiderSerializer(spider)
         data = serializer.data
-        
-        self.assertEqual(data['settings_json']['headless'], True)
-        self.assertEqual(data['settings_json']['max_retry'], 2)
-        self.assertEqual(data['settings_json']['user_agent'], 'Test Bot')
+        self.assertIn('Spider', data)
+        self.assertIn('Execution', data)
+        self.assertIn('Target', data)
+        self.assertEqual(data['Spider']['Name'], 'output-test-spider')
+        self.assertEqual(data['Target']['URL'], 'https://example.com')
+        self.assertEqual(data['Execution']['Headless_Mode'], True)
+        self.assertEqual(data['Execution']['User_Agent'], 'Test Bot')
 
     def test_update_spider_settings(self):
-        """Test updating spider with new settings."""
+        """Test updating spider using nested blocks, merging into settings_json."""
         spider = Spider.objects.create(
             project=self.project,
             name='update-spider',
             start_urls_json=['https://example.com'],
             settings_json={'headless': False}
         )
-        
-        update_data = {
-            'settings_json': {
-                'headless': True,
-                'max_retry': 5,
-                'parallel': 3
+        update_payload = {
+            'Execution': {
+                'Headless_Mode': True,
+                'Parallel_Instances': 3
+            },
+            'RetryPolicy': {
+                'Max_Retries': 5
             }
         }
-        
-        serializer = SpiderSerializer(spider, data=update_data, partial=True)
-        self.assertTrue(serializer.is_valid())
-        
+        serializer = SpiderSerializer(spider, data=update_payload, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
         updated_spider = serializer.save()
         self.assertEqual(updated_spider.settings_json['headless'], True)
         self.assertEqual(updated_spider.settings_json['max_retry'], 5)
