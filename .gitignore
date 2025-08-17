@@ -145,3 +145,6 @@ server.log
 # --- Exceptions: track the project SQLite DB (requested) ---
 !database/db.sqlite3
 !database/db.sqlite3-journal
+# Next.js
+.next/
+
